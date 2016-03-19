@@ -1,4 +1,4 @@
-## Interface: 60000
+## Interface: 60200
 
 ## Title: Bubblicious
 ## Notes: Customize the appearance of the chat bubbles.
@@ -7,7 +7,7 @@
 
 ## SavedVariables: BubbliciousDB 
 
-## OptDeps: LibStub, Ace3
+## OptionalDeps: LibStub, Ace3
 
 #@no-lib-strip@
 libs\LibStub-1.0\LibStub.lua
