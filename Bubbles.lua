@@ -293,7 +293,9 @@ function addon:IterateChatBubbles(funcToCall)
             for i=1,v:GetNumRegions() do
                 local frame = v
                 local v = select(i, v:GetRegions())
-                if v:GetObjectType() == "FontString" then
+                if v:GetObjectType() == "Texture" then
+                    v:SetTexture(nil)
+                elseif v:GetObjectType() == "FontString" then
                     local fontstring = v
                     if type(funcToCall) == "function" then
                         funcToCall(frame, fontstring)
