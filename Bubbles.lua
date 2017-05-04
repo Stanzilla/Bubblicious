@@ -2,40 +2,40 @@ if Prat then return end  -- TODO: better behaviour when Prat is around.
 
 
 local loc_mt = {
-		__index = function(t, k)
-			_G.error("Locale key " .. tostring(k) .. " is not provided.")
-		end
-	}
+    __index = function(t, k)
+        _G.error("Locale key " .. tostring(k) .. " is not provided.")
+    end
+}
 
 local L = setmetatable({},  loc_mt)
 
 function L.AddLocale(L, name, loc)
-	if GetLocale() == name or name == "enUS" then
-		for k, v in pairs(loc) do
-			if v == true then
-				L[k] = k
-			else
-				L[k] = v
-			end
-		end
-	end
+    if GetLocale() == name or name == "enUS" then
+        for k, v in pairs(loc) do
+            if v == true then
+                L[k] = k
+            else
+                L[k] = v
+            end
+        end
+    end
 end
 
 
 --@debug@
 L:AddLocale("enUS", {
-	module_name = "Bubblicious",
-	module_desc = "Chat bubble related customizations",
-	shorten_name = "Shorten Bubbles",
-	shorten_desc = "Shorten the chat bubbles down to a single line each. Mouse over the bubble to expand the text.",
-	color_name = "Color Bubbles",
-	color_desc = "Color the chat bubble border the same as the chat type.",
-	icons_name = "Show Raid Icons",
-	icons_desc = "Show raid icons in the chat bubbles.",
-	font_name = "Use Chat Font",
-	font_desc = "Use the same font you are using on the chatframe",
-	fontsize_name = "Font Size",
-	fontsize_desc = "Set the chat bubble font size",
+    module_name = "Bubblicious",
+    module_desc = "Chat bubble related customizations",
+    shorten_name = "Shorten Bubbles",
+    shorten_desc = "Shorten the chat bubbles down to a single line each. Mouse over the bubble to expand the text.",
+    color_name = "Color Bubbles",
+    color_desc = "Color the chat bubble border the same as the chat type.",
+    icons_name = "Show Raid Icons",
+    icons_desc = "Show raid icons in the chat bubbles.",
+    font_name = "Use Chat Font",
+    font_desc = "Use the same font you are using on the chatframe",
+    fontsize_name = "Font Size",
+    fontsize_desc = "Set the chat bubble font size",
 })
 --@end-debug@
 
@@ -76,22 +76,22 @@ L:AddLocale("zhTW",
 local addon = LibStub("AceAddon-3.0"):NewAddon("Bubblicious")
 
 local defaults = {
-	profile = {
-	    on = true,
-	    shorten = false,
-	    color = true,
-	    icons = true,
+    profile = {
+        on = true,
+        shorten = false,
+        color = true,
+        icons = true,
         font = true,
         fontsize = 14,
-	}
+    }
 }
 
 
 
 local toggleOption = {
-		name = function(info) return L[info[#info].."_name"] end,
-		desc = function(info) return L[info[#info].."_desc"] end,
-		type="toggle",
+    name = function(info) return L[info[#info].."_name"] end,
+    desc = function(info) return L[info[#info].."_desc"] end,
+    type="toggle",
 }
 
 local options =  {
@@ -103,22 +103,22 @@ local options =  {
     desc = L["module_desc"],
     type = "group",
     args = {
-    	shorten = toggleOption,
-    	color = toggleOption,
-    	icons = toggleOption,
+        shorten = toggleOption,
+        color = toggleOption,
+        icons = toggleOption,
         font = toggleOption,
         fontsize = {
-        	name = L.fontsize_name,
-        	desc = L.fontsize_desc,
-        	type="range", min=8, max=32, step=1, order=101
+            name = L.fontsize_name,
+            desc = L.fontsize_desc,
+            type="range", min=8, max=32, step=1, order=101
         }
-	}
+    }
 }
 
 
 
 --[[------------------------------------------------
-	Module Event Functions
+Module Event Functions
 ------------------------------------------------]]--
 
 local BUBBLE_SCAN_THROTTLE = 0.1
@@ -126,23 +126,23 @@ local BUBBLE_SCAN_THROTTLE = 0.1
 function addon:OnInitialize()
     self.db = LibStub("AceDB-3.0"):New("BubbliciousDB", defaults, "Default")
 
-	local acreg = LibStub("AceConfigRegistry-3.0")
-	acreg:RegisterOptionsTable(L.module_name, options)
+    local acreg = LibStub("AceConfigRegistry-3.0")
+    acreg:RegisterOptionsTable(L.module_name, options)
 
-	local acdia = LibStub("AceConfigDialog-3.0")
-	acdia:AddToBlizOptions(L.module_name, L.module_name)
+    local acdia = LibStub("AceConfigDialog-3.0")
+    acdia:AddToBlizOptions(L.module_name, L.module_name)
 
 
     local cmd_name = L.module_name:upper()
-	SlashCmdList[cmd_name] =
-    	function()
-        	local acd = LibStub("AceConfigDialog-3.0")
-            if acd.OpenFrames[L.module_name] then
-                acd:Close(L.module_name)
-            else
-                acd:Open(L.module_name)
-            end
+    SlashCmdList[cmd_name] =
+    function()
+        local acd = LibStub("AceConfigDialog-3.0")
+        if acd.OpenFrames[L.module_name] then
+            acd:Close(L.module_name)
+        else
+            acd:Open(L.module_name)
         end
+    end
 
     _G["SLASH_"..cmd_name.."1"] = "/"..cmd_name:lower()
 end
@@ -169,25 +169,25 @@ function addon:OnDisable()
 end
 
 function addon:SetValue(info, b)
-	self.db.profile[info[#info]] = b
-	addon:ApplyOptions()
+    self.db.profile[info[#info]] = b
+    addon:ApplyOptions()
 end
 function addon:GetValue(info)
-	return self.db.profile[info[#info]]
+    return self.db.profile[info[#info]]
 end
 
 function addon:ApplyOptions()
-	self.shorten = self.db.profile.shorten
-	self.color = self.db.profile.color
-	self.icons = self.db.profile.icons
+    self.shorten = self.db.profile.shorten
+    self.color = self.db.profile.color
+    self.icons = self.db.profile.icons
     self.font = self.db.profile.font
     self.fontsize = self.db.profile.fontsize
 
-	if self.shorten or self.color or self.format or self.icons or self.font then
-	    self.update:Show()
-	else
+    if self.shorten or self.color or self.format or self.icons or self.font then
+        self.update:Show()
+    else
         self.update:Hide()
-	end
+    end
 end
 
 function addon:FormatBubbles()
@@ -258,13 +258,13 @@ function addon:FormatCallback(frame, fontstring)
 
     if self.icons then
         -- Translate raid icon {rt1} {star} into actual icons
-		local term;
-		for tag in string.gmatch(text, "%b{}") do
-			term = strlower(string.gsub(tag, "[{}]", ""));
-			if ( ICON_TAG_LIST[term] and ICON_LIST[ICON_TAG_LIST[term]] ) then
-				text = string.gsub(text, tag, ICON_LIST[ICON_TAG_LIST[term]] .. "0|t");
-			end
-		end
+        local term;
+        for tag in string.gmatch(text, "%b{}") do
+            term = strlower(string.gsub(tag, "[{}]", ""));
+            if ( ICON_TAG_LIST[term] and ICON_LIST[ICON_TAG_LIST[term]] ) then
+                text = string.gsub(text, tag, ICON_LIST[ICON_TAG_LIST[term]] .. "0|t");
+            end
+        end
     end
 
     -- We should end up here exactly once per bubble, resize the fontstring so that it
@@ -276,9 +276,9 @@ end
 
 -- Called for each chatbubble, passed the bubble's frame and its fontstring
 function addon:RestoreDefaultsCallback(frame, fontstring)
-   frame:SetBackdropBorderColor(1,1,1,1)
-   fontstring:SetWordWrap(1)
-   fontstring:SetWidth(fontstring:GetWidth())
+    frame:SetBackdropBorderColor(1,1,1,1)
+    fontstring:SetWordWrap(1)
+    fontstring:SetWidth(fontstring:GetWidth())
 end
 
 
