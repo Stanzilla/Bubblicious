@@ -194,7 +194,7 @@ function addon:ApplyOptions()
     self.fontsize = self.db.profile.fontsize
     self.translucent = self.db.profile.translucent
 
-    if self.shorten or self.color or self.format or self.icons or self.font then
+    if self.shorten or self.color or self.format or self.icons or self.font or self.translucent then
         self.update:Show()
     else
         self.update:Hide()
@@ -259,7 +259,7 @@ function addon:FormatCallback(frame, fontstring)
     end
 
     if self.font then
-        local a,b,c = fontstring:GetFont()
+        local a, b, c = fontstring:GetFont()
 
         -- Set the font the same as the font used in ChatFrame1
         -- Also set the custom size (default client size is a bit over 14)
@@ -299,26 +299,20 @@ function addon:IterateChatBubbles(funcToCall)
     if C_ChatBubbles then
         for _, chatBubble in pairs(C_ChatBubbles.GetAllChatBubbles()) do
             local v = chatBubble
-            local b = v.isChatBubble == nil and v:GetBackdrop()
-            if v.isChatBubble ~= false and b then
-                v.isChatBubble = true
-                for i = 1, v:GetNumRegions() do
-                    local frame = v
-                    local v = select(i, v:GetRegions())
-                    if v:GetObjectType() == "Texture" and self.translucent then
-                        v:SetTexture(nil)
-                    end
-                    if v:GetObjectType() == "FontString" then
-                        local fontstring = v
-                        if type(funcToCall) == "function" then
-                            funcToCall(frame, fontstring)
-                        else
-                            self[funcToCall](self, frame, fontstring)
-                        end
+            for i = 1, v:GetNumRegions() do
+                local frame = v
+                local v = select(i, v:GetRegions())
+                if v:GetObjectType() == "Texture" and self.translucent then
+                    v:SetTexture(nil)
+                end
+                if v:GetObjectType() == "FontString" then
+                    local fontstring = v
+                    if type(funcToCall) == "function" then
+                        funcToCall(frame, fontstring)
+                    else
+                        self[funcToCall](self, frame, fontstring)
                     end
                 end
-            else
-                v.isChatBubble = false
             end
         end
     else
