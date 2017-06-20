@@ -1,3 +1,5 @@
+-- luacheck: globals Prat ChatFrame1 ICON_TAG ICON_TAG_LIST ICON_LIST C_ChatBubbles.GetAllChatBubbles
+
 if Prat then return end  -- TODO: better behaviour when Prat is around.
 
 
@@ -36,6 +38,8 @@ L:AddLocale("enUS", {
     font_desc = "Use the same font you are using on the chatframe",
     fontsize_name = "Font Size",
     fontsize_desc = "Set the chat bubble font size",
+    translucent_name = "Translucent background",
+    translucent_desc = "Remove the background image from bubbles",
 })
 --@end-debug@
 
@@ -83,10 +87,9 @@ local defaults = {
         icons = true,
         font = true,
         fontsize = 14,
+        translucent = false,
     }
 }
-
-
 
 local toggleOption = {
     name = function(info) return L[info[#info].."_name"] end,
@@ -107,6 +110,7 @@ local options =  {
         color = toggleOption,
         icons = toggleOption,
         font = toggleOption,
+        translucent = toggleOption,
         fontsize = {
             name = L.fontsize_name,
             desc = L.fontsize_desc,
@@ -114,7 +118,6 @@ local options =  {
         }
     }
 }
-
 
 
 --[[------------------------------------------------
@@ -131,7 +134,6 @@ function addon:OnInitialize()
 
     local acdia = LibStub("AceConfigDialog-3.0")
     acdia:AddToBlizOptions(L.module_name, L.module_name)
-
 
     local cmd_name = L.module_name:upper()
     SlashCmdList[cmd_name] =
@@ -151,17 +153,24 @@ end
 function addon:OnEnable()
     self.update = self.update or CreateFrame('Frame');
     self.throttle = BUBBLE_SCAN_THROTTLE
-
-    self.update:SetScript("OnUpdate",
-        function(frame, elapsed)
-            self.throttle = self.throttle - elapsed
-            if frame:IsShown() and self.throttle < 0 then
-                self.throttle = BUBBLE_SCAN_THROTTLE
-                self:FormatBubbles()
-            end
-        end)
-
+    self.update:RegisterEvent("ZONE_CHANGED_NEW_AREA")
+    if not IsInInstance() then
+        self.update:SetScript("OnUpdate",
+            function(frame, elapsed)
+                self.throttle = self.throttle - elapsed
+                if frame:IsShown() and self.throttle < 0 then
+                    self.throttle = BUBBLE_SCAN_THROTTLE
+                    self:FormatBubbles()
+                end
+            end)
+    end
     self:ApplyOptions()
+end
+
+function addon:ZONE_CHANGED_NEW_AREA()
+    if IsInInstance() then
+        self.update:SetScript("OnUpdate", nil)
+    end
 end
 
 function addon:OnDisable()
@@ -172,6 +181,7 @@ function addon:SetValue(info, b)
     self.db.profile[info[#info]] = b
     addon:ApplyOptions()
 end
+
 function addon:GetValue(info)
     return self.db.profile[info[#info]]
 end
@@ -182,6 +192,7 @@ function addon:ApplyOptions()
     self.icons = self.db.profile.icons
     self.font = self.db.profile.font
     self.fontsize = self.db.profile.fontsize
+    self.translucent = self.db.profile.translucent
 
     if self.shorten or self.color or self.format or self.icons or self.font then
         self.update:Show()
@@ -219,9 +230,9 @@ function addon:FormatCallback(frame, fontstring)
 
         -- If the mouse is over, then expand the bubble
         if frame:IsMouseOver() then
-            fontstring:SetWordWrap(1)
+            fontstring:SetWordWrap(true)
         elseif wrap == 1 then
-            fontstring:SetWordWrap(0)
+            fontstring:SetWordWrap(false)
         end
     end
 
@@ -238,6 +249,7 @@ function addon:FormatCallback(frame, fontstring)
         if self.shorten then
             fontstring:SetWidth(fontstring:GetWidth())
         end
+
         return
     end
 
@@ -246,7 +258,6 @@ function addon:FormatCallback(frame, fontstring)
         frame:SetBackdropBorderColor(fontstring:GetTextColor())
     end
 
-
     if self.font then
         local a,b,c = fontstring:GetFont()
 
@@ -254,7 +265,6 @@ function addon:FormatCallback(frame, fontstring)
         -- Also set the custom size (default client size is a bit over 14)
         fontstring:SetFont(ChatFrame1:GetFont(), self.fontsize, c)
     end
-
 
     if self.icons then
         -- Translate raid icon {rt1} {star} into actual icons
@@ -277,7 +287,7 @@ end
 -- Called for each chatbubble, passed the bubble's frame and its fontstring
 function addon:RestoreDefaultsCallback(frame, fontstring)
     frame:SetBackdropBorderColor(1,1,1,1)
-    fontstring:SetWordWrap(1)
+    fontstring:SetWordWrap(true)
     fontstring:SetWidth(fontstring:GetWidth())
 end
 
@@ -286,23 +296,51 @@ end
 -- This function is also provided under the MIT license, and is free
 -- for you to reuse in your own addons
 function addon:IterateChatBubbles(funcToCall)
-    for i=1,WorldFrame:GetNumChildren() do
-        local v = select(i, WorldFrame:GetChildren())
-        local b = v:GetBackdrop()
-        if b and b.bgFile == "Interface\\Tooltips\\ChatBubble-Background" then
-            for i=1,v:GetNumRegions() do
-                local frame = v
-                local v = select(i, v:GetRegions())
-                if v:GetObjectType() == "Texture" then
-                    v:SetTexture(nil)
-                elseif v:GetObjectType() == "FontString" then
-                    local fontstring = v
-                    if type(funcToCall) == "function" then
-                        funcToCall(frame, fontstring)
-                    else
-                        self[funcToCall](self, frame, fontstring)
+    if C_ChatBubbles then
+        for _, chatBubble in pairs(C_ChatBubbles.GetAllChatBubbles()) do
+            local v = chatBubble
+            local b = v.isChatBubble == nil and v:GetBackdrop()
+            if v.isChatBubble ~= false and b then
+                v.isChatBubble = true
+                for i = 1, v:GetNumRegions() do
+                    local frame = v
+                    local v = select(i, v:GetRegions())
+                    if v:GetObjectType() == "Texture" and self.translucent then
+                        v:SetTexture(nil)
+                    end
+                    if v:GetObjectType() == "FontString" then
+                        local fontstring = v
+                        if type(funcToCall) == "function" then
+                            funcToCall(frame, fontstring)
+                        else
+                            self[funcToCall](self, frame, fontstring)
+                        end
                     end
                 end
+            else
+                v.isChatBubble = false
+            end
+        end
+    else
+        for i = 1, WorldFrame:GetNumChildren() do
+            local v = select(i, WorldFrame:GetChildren())
+            local b = v.isChatBubble == nil and v:GetBackdrop()
+            if v.isChatBubble ~= false and b and b.bgFile == "Interface\\Tooltips\\ChatBubble-Background" then
+                v.isChatBubble = true
+                for i = 1, v:GetNumRegions() do
+                    local frame = v
+                    local v = select(i, v:GetRegions())
+                    if v:GetObjectType() == "FontString" then
+                        local fontstring = v
+                        if type(funcToCall) == "function" then
+                            funcToCall(frame, fontstring)
+                        else
+                            self[funcToCall](self, frame, fontstring)
+                        end
+                    end
+                end
+            else
+                v.isChatBubble = false
             end
         end
     end
