@@ -1,11 +1,11 @@
-## Interface: 60200
+## Interface: 70200
 
 ## Title: Bubblicious
 ## Notes: Customize the appearance of the chat bubbles.
-## Version: @project-version@ 
+## Version: @project-version@
 ## Author: Sylvanaar
 
-## SavedVariables: BubbliciousDB 
+## SavedVariables: BubbliciousDB
 
 ## OptionalDeps: LibStub, Ace3
 
